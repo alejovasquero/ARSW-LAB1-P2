@@ -1,0 +1,41 @@
+Posibles condiciones de carrera:
+
+1. Todas las serpientes están accediendo de manera concurrente a los ratones, poderes y turbos, por lo
+que una serpiente podría usar el poder al mismo tiempo que otra, lo que mo tendría lógica, debido a que son de un solo uso.
+
+2. La cantidad de ratones podría disminuir si varias serpientes que hayan consumido un ratón y busquen nuevo sitio para el
+ratón apunten a la misma casilla (Esas casillas son random pero podría ocurrir), y si la casilla está vacía pondrán el ratón
+todas en una misma casilla, disminuyendo los ratones en pantalla.
+
+
+
+Accesos ilegales a colecciones:
+1. En la clase Board hay un Iterador sobre la lista del cuerpo de una serpiente, lo que es peligrosos teniendo en cuenta de
+en ese mismo momento esa misma serpiente puede estar cambiando su forma, en modo de añadir cabeza o quitar la cola.
+Este acceso concurrente no debería darse.
+
+
+Esperas activas:
+En la clase principal "SnakeApp", hay una espera activa que está siempre preguntando por la cantidad de serpientes
+que siguen vivas y así continua validando este estado, consumiendo computo.
+
+
+
+SOLUCIONES
+Posibles condiciones de carrera:
+
+1. Cada vez que una serpiente quiera revisar el contenido de una celda, deberá pedir el lock de esta objeto celda.
+Este bloqueo se hará una vez para revisar, poderes, mejoras y comida. El problema de trasladar los ratones desaparece
+debido a que la parte de código donde se reubican los ratones está dentro del bloque de sincronización.
+
+2. La búsqueda aleatoria para ubicar los ratones se hará bloqueando la celda que ha sido seleccionada, por lo que cada
+vez la celda bloqueda será distinta, y ninguna otra serpiente podrá ubicar el ratón ahí. (método checkIfFood())
+
+Accesos ilegales a colecciones:
+
+Los accesos a consultar la linkedlist de la serpiente se harán con un bloque "synchronized" sobre ese objeto lista.
+Los bloqueos serán al final del método snakeCal, al momento de hacer inserciones y también al momento de consultar la lista.
+
+
+Esperas activas:
+Se esperará a todos los threads por medio de un join(), en lugar de una espera activa.

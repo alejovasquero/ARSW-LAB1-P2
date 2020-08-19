@@ -39,6 +39,8 @@ public class SnakeApp {
     private static Board board;
     int nr_selected = 0;
     Thread[] thread = new Thread[MAX_THREADS];
+    private boolean pause=false;
+    private boolean started = false;
 
     public SnakeApp() {
         Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
@@ -73,6 +75,25 @@ public class SnakeApp {
             }
         });
 
+
+        JButton d = new JButton("Pause ");
+        actionsBPabel.add(d);
+        d.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pause();
+            }
+        });
+
+        JButton e = new JButton("Resume ");
+        actionsBPabel.add(e);
+        e.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                resume();
+            }
+        });
+
     }
 
 
@@ -95,19 +116,14 @@ public class SnakeApp {
 
         frame.setVisible(true);
 
-            
-        while (true) {
-            int x = 0;
-            for (int i = 0; i != MAX_THREADS; i++) {
-                if (snakes[i].isSnakeEnd() == true) {
-                    x++;
-                }
-            }
-            if (x == MAX_THREADS) {
-                break;
+
+        for(Thread t: thread){
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                //e.printStackTrace();
             }
         }
-
 
         System.out.println("Thread (snake) status:");
         for (int i = 0; i != MAX_THREADS; i++) {
@@ -121,10 +137,38 @@ public class SnakeApp {
         return app;
     }
 
+    public synchronized boolean isPause(){
+        return pause;
+    }
 
-    public void start(){
-        for (int i = 0; i != MAX_THREADS; i++) {
-            snakes[i].resume();
+    public synchronized void start(){
+        if(!started){
+            for (int i = 0; i != MAX_THREADS; i++) {
+                snakes[i].resume();
+            }
+            started = true;
+        }
+    }
+
+    public synchronized void pause(){
+        if(started){
+            pause = true;
+            for (int i = 0; i != MAX_THREADS; i++) {
+                snakes[i].pause();
+            }
+            board.repaint();
+        }
+
+    }
+
+
+    public synchronized void resume(){
+        if(started){
+            pause = false;
+            for (int i = 0; i != MAX_THREADS; i++) {
+                snakes[i].resume();
+            }
+            board.repaint();
         }
     }
 }

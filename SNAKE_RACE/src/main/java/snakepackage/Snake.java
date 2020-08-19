@@ -83,27 +83,33 @@ public class Snake extends Observable implements Runnable {
 
     private void snakeCalc() {
         head = snakeBody.peekFirst();
-
         newCell = head;
 
         newCell = changeDirection(newCell);
-        
+
         randomMovement(newCell);
-
-        checkIfFood(newCell);
-        checkIfJumpPad(newCell);
-        checkIfTurboBoost(newCell);
-        checkIfBarrier(newCell);
-        
-        snakeBody.push(newCell);
-
-        if (growing <= 0) {
-            newCell = snakeBody.peekLast();
-            snakeBody.remove(snakeBody.peekLast());
-            Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
-        } else if (growing != 0) {
-            growing--;
+        synchronized (Board.gameboard[newCell.getX()][newCell.getY()]){
+            checkIfFood(newCell);
+            checkIfJumpPad(newCell);
+            checkIfTurboBoost(newCell);
         }
+
+        checkIfBarrier(newCell);
+
+
+        synchronized (this.getBody()){
+            snakeBody.push(newCell);
+            if (growing <= 0) {
+                synchronized (this.getBody()){
+                    newCell = snakeBody.peekLast();
+                    snakeBody.remove(snakeBody.peekLast());
+                    Board.gameboard[newCell.getX()][newCell.getY()].freeCell();
+                }
+            } else if (growing != 0) {
+                growing--;
+            }
+        }
+
 
     }
 
@@ -195,7 +201,6 @@ public class Snake extends Observable implements Runnable {
 
     private void checkIfFood(Cell newCell) {
         Random random = new Random();
-
         if (Board.gameboard[newCell.getX()][newCell.getY()].isFood()) {
             // eat food
             growing += 3;
@@ -210,13 +215,19 @@ public class Snake extends Observable implements Runnable {
                         && Board.food[i].getY() == newCell.getY()) {
                     Board.gameboard[Board.food[i].getX()][Board.food[i].getY()]
                             .setFood(false);
-
-                    while (Board.gameboard[x][y].hasElements()) {
-                        x = random.nextInt(GridSize.GRID_HEIGHT);
-                        y = random.nextInt(GridSize.GRID_WIDTH);
+                    boolean done =false;
+                    while (!done) {
+                        synchronized (Board.gameboard[x][y]){
+                            if(!Board.gameboard[x][y].hasElements()){
+                                done = true;
+                                Board.food[i] = new Cell(x, y);
+                                Board.gameboard[x][y].setFood(true);
+                            } else {
+                                x = random.nextInt(GridSize.GRID_HEIGHT);
+                                y = random.nextInt(GridSize.GRID_WIDTH);
+                            }
+                        }
                     }
-                    Board.food[i] = new Cell(x, y);
-                    Board.gameboard[x][y].setFood(true);
                 }
             }
         }

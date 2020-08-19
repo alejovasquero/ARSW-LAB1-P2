@@ -29,7 +29,9 @@ public class Board extends JLabel implements Observer {
 	static int[] result = new int[SnakeApp.MAX_THREADS];
 	Random random = new Random();
 	static Cell[][] gameboard = new Cell[GridSize.GRID_WIDTH][GridSize.GRID_HEIGHT];
-
+	private static Snake worst = null;
+	private static Snake longest = null;
+	private static int len= -1;
 	@SuppressWarnings("unused")
 	public Board() {
 		if ((NR_BARRIERS + NR_JUMP_PADS + NR_FOOD + NR_TURBO_BOOSTS) > GridSize.GRID_HEIGHT
@@ -104,7 +106,7 @@ public class Board extends JLabel implements Observer {
 		}
 	}
 
-	public void paintComponent(Graphics g) {
+	public synchronized void paintComponent(Graphics g) {
 		super.paintComponent(g);
 
 		drawGrid(g);
@@ -181,26 +183,50 @@ public class Board extends JLabel implements Observer {
 		}
 	}
 
+	private void seeWorst(Snake s) {
+		if (s.isSnakeEnd() && worst == null) {
+			worst = s;
+		}
+	}
+
+
+	private void drawOneSnake(Graphics g, int i){
+		for (Cell p : SnakeApp.getApp().snakes[i].getBody()) {
+			if (p.equals(SnakeApp.getApp().snakes[i].getBody().peekFirst())) {
+				g.setColor(new Color(050+(i*10), 205, 150));
+				g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
+								* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
+						GridSize.HEIGH_BOX);
+			} else {
+				if (SnakeApp.getApp().snakes[i].isSelected()) {
+					g.setColor(new Color(032, 178, 170));
+				} else
+					g.setColor(new Color(034, 139, 034));
+				g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
+								* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
+						GridSize.HEIGH_BOX);
+			}
+		}
+	}
+
+
+	private boolean printable(Snake a){
+		return !SnakeApp.getApp().isPause() || a == longest || a == worst;
+	}
+
 	private void drawSnake(Graphics g) {
 		for (int i = 0; i != SnakeApp.MAX_THREADS; i++) {
-			for (Cell p : SnakeApp.getApp().snakes[i].getBody()) {
-				if (p.equals(SnakeApp.getApp().snakes[i].getBody().peekFirst())) {
-					g.setColor(new Color(050+(i*10), 205, 150));
-					g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
-							* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
-							GridSize.HEIGH_BOX);
-				} else {
-					if (SnakeApp.getApp().snakes[i].isSelected()) {
-						g.setColor(new Color(032, 178, 170));
-					} else
-						g.setColor(new Color(034, 139, 034));
-					g.fillRect(p.getX() * GridSize.WIDTH_BOX, p.getY()
-							* GridSize.HEIGH_BOX, GridSize.WIDTH_BOX,
-							GridSize.HEIGH_BOX);
+			seeWorst(SnakeApp.getApp().snakes[i]);
+			synchronized (SnakeApp.getApp().snakes[i].getBody()){
+				if(SnakeApp.getApp().snakes[i].getBody().size() > len){
+					len = SnakeApp.getApp().snakes[i].getBody().size();
+					longest = SnakeApp.getApp().snakes[i];
+				}
+				if(printable(SnakeApp.getApp().snakes[i])){
+					drawOneSnake(g, i);
 				}
 			}
 		}
-
 	}
 
 	private void drawGrid(Graphics g) {
